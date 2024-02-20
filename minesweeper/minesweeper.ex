@@ -23,12 +23,12 @@ defmodule Minesweeper do
   # get_pos/3 (get position): recebe um tabuleiro (matriz), uma linha (l) e uma coluna (c) (não precisa validar).
   # Devolve o elemento na posicao tabuleiro[l,c]. Usar get_arr/2 na implementação
 
-  def get_pos(tab, l, c), do: get_arr(get_arr(tab, l), c)
+  def get_pos(tab, l, c), do: tab |> get_arr(l) |> get_arr(c)
 
   # update_pos/4 (update position): recebe um tabuleiro, uma linha, uma coluna e um novo valor. Devolve
   # o tabuleiro modificado com o novo valor na posiçao linha x coluna. Usar update_arr/3 e get_arr/2 na implementação
 
-  #def update_pos(tab,l,c,v), do: ...
+  def update_pos(tab, l, c, v), do: update_arr(tab, l, update_arr(get_arr(tab, l), c, v))
 
   # SEGUNDA PARTE: LÓGICA DO JOGO
 
