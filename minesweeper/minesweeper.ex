@@ -1,8 +1,4 @@
 defmodule Minesweeper do
-  # PRIMEIRA PARTE - FUNÇÕES PARA MANIPULAR OS TABULEIROS DO JOGO (MATRIZES)
-
-  # A ideia das próximas funções é permitir que a gente acesse uma lista usando um indice,
-  # como se fosse um vetor
 
   # get_arr/2 (get array):  recebe uma lista (vetor) e uma posicao (p) e devolve o elemento
   # na posição p do vetor. O vetor começa na posição 0 (zero). Não é necessário tratar erros.
@@ -15,10 +11,6 @@ defmodule Minesweeper do
 
   def update_arr([_h|t], 0, v), do: [v | t]
   def update_arr([h|t], n, v), do: [h | update_arr(t, n - 1, v)]
-
-  # O tabuleiro do jogo é representado como uma matriz. Uma matriz, nada mais é do que um vetor de vetores.
-  # Dessa forma, usando as operações anteriores, podemos criar funções para acessar os tabuleiros, como
-  # se  fossem matrizes:
 
   # get_pos/3 (get position): recebe um tabuleiro (matriz), uma linha (l) e uma coluna (c) (não precisa validar).
   # Devolve o elemento na posicao tabuleiro[l,c]. Usar get_arr/2 na implementação
@@ -34,29 +26,17 @@ defmodule Minesweeper do
 
   #-- is_mine/3: recebe um tabuleiro com o mapeamento das minas, uma linha, uma coluna. Devolve true caso a posição contenha
   # uma mina e false caso contrário. Usar get_pos/3 na implementação
-  #
-  # Exemplo de tabuleiro de minas:
-  #
-  # _mines_board = [[false, false, false, false, false, false, false, false, false],
-  #                 [false, false, false, false, false, false, false, false, false],
-  #                 [false, false, false, false, false, false, false, false, false],
-  #                 [false, false, false, false, false, false, false, false, false],
-  #                 [false, false, false, false, true , false, false, false, false],
-  #                 [false, false, false, false, false, true, false, false, false],
-  #                 [false, false, false, false, false, false, false, false, false],
-  #                 [false, false, false, false, false, false, false, false, false],
-  #                 [false, false, false, false, false, false, false, false, false]]
-  #
+
   # esse tabuleiro possuí minas nas posições 4x4 e 5x5
 
-  #def is_mine(tab,l,c), do: ...
+  def is_mine(tab, l, c), do: get_pos(tab, l, c)
 
   # is_valid_pos/3 recebe o tamanho do tabuleiro (ex, em um tabuleiro 9x9, o tamanho é 9),
   # uma linha e uma coluna, e diz se essa posição é válida no tabuleiro. Por exemplo, em um tabuleiro
   # de tamanho 9, as posições 1x3,0x8 e 8x8 são exemplos de posições válidas. Exemplos de posições
   # inválidas seriam 9x0, 10x10 e -1x8
 
-  #def is_valid_pos(tamanho,l,c), do: ...
+  def is_valid_pos(tamanho, l, c), do: l >= 0 and l < tamanho and c >= 0 and c < tamanho
 
   # valid_moves/3: Dado o tamanho do tabuleiro e uma posição atual (linha e coluna), retorna uma lista
   # com todas as posições adjacentes à posição atual
@@ -74,7 +54,15 @@ defmodule Minesweeper do
   #   ...    ...  ..
   # Uma maneira de resolver seria gerar todas as 8 posições adjacentes e depois filtrar as válidas usando is_valid_pos
 
-  #def valid_moves(tam,l,c), do: ...
+  def valid_moves(tam, l, c) do
+    moves = [
+      {l-1, c-1}, {l-1, c}, {l-1, c+1},
+      {l,   c-1},           {l,   c+1},
+      {l+1, c-1}, {l+1, c}, {l+1, c+1}
+    ]
+
+    Enum.filter(moves, fn {nl, nc} -> is_valid_pos(tam, nl, nc) end)
+  end
 
   # conta_minas_adj/3: recebe um tabuleiro com o mapeamento das minas e uma  uma posicao  (linha e coluna), e conta quantas minas
   # existem nas posições adjacentes
@@ -217,3 +205,25 @@ defmodule Motor do
 end
 
 #Motor.main()
+
+  # Exemplo de tabuleiro de minas:
+
+  mines_board = [[false, false, false, false, false, false, false, false, false],
+                   [false, false, false, false, false, false, false, false, false],
+                   [false, false, false, false, false, false, false, false, false],
+                   [false, false, false, false, false, false, false, false, false],
+                   [false, false, false, false, true , false, false, false, false],
+                   [false, false, false, false, false, true, false, false, false],
+                   [false, false, false, false, false, false, false, false, false],
+                   [false, false, false, false, false, false, false, false, false],
+                   [false, false, false, false, false, false, false, false, false]]
+
+
+  IO.puts "Tem mina em (4, 4)? #{Minesweeper.is_mine(mines_board, 4, 4)}"
+  IO.puts "Tem mina em (5, 5)? #{Minesweeper.is_mine(mines_board, 5, 5)}"
+  IO.puts "Tem mina em (0, 0)? #{Minesweeper.is_mine(mines_board, 0, 0)}"
+  IO.puts "Tem mina em (1, 2)? #{Minesweeper.is_mine(mines_board, 1, 2)}"
+
+  IO.inspect Minesweeper.valid_moves(3, 0, 0) # Saída esperada: [{0, 1}, {1, 0}, {1, 1}]
+  IO.inspect Minesweeper.valid_moves(3, 1, 1) # Saída esperada: [{0, 0}, {0, 1}, {0, 2}, {1, 0}, {1, 2}, {2, 0}, {2, 1}, {2, 2}]
+  IO.inspect Minesweeper.valid_moves(3, 2, 2) # Saída esperada: [{1, 1}, {1, 2}, {2, 1}]
