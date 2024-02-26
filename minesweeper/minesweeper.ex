@@ -64,12 +64,16 @@ defmodule Minesweeper do
     Enum.filter(moves, fn {nl, nc} -> is_valid_pos(tam, nl, nc) end)
   end
 
-  # conta_minas_adj/3: recebe um tabuleiro com o mapeamento das minas e uma  uma posicao  (linha e coluna), e conta quantas minas
-  # existem nas posições adjacentes
+  # conta_minas_adj/3: recebe um tabuleiro com o mapeamento das minas e uma posicao  (linha e coluna), e conta quantas minas existem nas posições adjacentes
 
-  # def conta_minas_adj(tab,l,c) do
-  #   (...)
-  # end
+  def conta_minas_adj(minas, l, c) do
+    # Pega as posições adjacentes válidas
+    adjPositions = valid_moves(length(minas), l, c)
+
+    # Conta quantos get_pos true existem nas posições adjacentes
+    Enum.count(adjPositions, fn {nl, nc} ->
+      true and get_pos(minas, nl, nc) end)
+  end
 
   # abre_jogada/4: é a função principal do jogo!!
   # recebe uma posição a ser aberta (linha e coluna), o mapa de minas e o tabuleiro do jogo. Devolve como
@@ -84,9 +88,18 @@ defmodule Minesweeper do
   # - Se a posição a ser aberta não possui minas adjacentes, abrimos ela com zero (0) e recursivamente abrimos
   # as outras posições adjacentes a ela
 
-  #def abre_jogada(l,c,minas,tab) do
-  #   (...)
-  #end
+  def abre_jogada(l, c, minas, tab) do
+    cond do
+      # Se a posição for uma mina, retorna o tabuleiro.
+      get_pos(minas, l, c) -> tab
+      # Se a posição já estiver aberta, retorna o tabuleiro.
+      get_pos(tab, l,  c) == 0 -> tab
+      # Se a posição é adjacente a uma ou mais minas, devolver o tabuleiro modificado
+      conta_minas(minas, l, c) > 0 -> abre_posicao(tab, minas, l, c)
+      # Se ela não possui minas adjacentes
+      true -> update_pos()
+    end
+  end
 
 # abre_posicao/4, que recebe um tabueiro de jogos, o mapa de minas, uma linha e uma coluna
 # Essa função verifica:
@@ -94,29 +107,35 @@ defmodule Minesweeper do
 # - Se a posição {l,c} contém uma mina no mapa de minas, então marcar  com "*" no tabuleiro
 # - Se a posição {l,c} está fechada (contém "-"), escrever o número de minas adjascentes a esssa posição no tabuleiro (usar conta_minas)
 
-  #def abre_posicao(tab,minas,l,c) do
-  # (...)
-  #end
-
-
+  def abre_posicao(tab, minas, l, c) do
+    cond do
+      get_pos(tab,   l, c) >= 0 and get_pos(tab, l, c) <= 8 -> tab
+      get_pos(minas, l, c) -> update_pos(tab, l, c, "*")
+      true -> update_pos(tab, l, c, conta_minas_adj(minas, l, c))
+    end
+  end
 
 # abre_tabuleiro/2: recebe o mapa de Minas e o tabuleiro do jogo, e abre todo o tabuleiro do jogo, mostrando
 # onde estão as minas e os números nas posições adjecentes às minas.Essa função é usada para mostrar
 # todo o tabuleiro no caso de vitória ou derrota. Para implementar esta função, usar a função abre_posicao/4
 
-
-  #def abre_tabuleiro(minas,tab) do
-  #   (...)
-  #end
+# GTPZado, não sei se funciona
+  def abre_tabuleiro(minas, tab) do
+    Enum.reduce(0..(length(tab) - 1), tab, fn l, acc_tab ->
+      Enum.reduce(0..(length(tab) - 1), acc_tab, fn c, acc_tab2 ->
+        abre_posicao(acc_tab2, minas, l, c)
+      end)
+    end)
+  end
 
 # board_to_string/1: -- Recebe o tabuleiro do jogo e devolve uma string que é a representação visual desse tabuleiro.
 # Essa função é aplicada no tabuleiro antes de fazer o print dele na tela. Usar a sua imaginação para fazer um
 # tabuleiro legal. Olhar os exemplos no .pdf com a especificação do trabalho. Não esquecer de usar \n para quebra de linhas.
 # Você pode quebrar essa função em mais de uma: print_header, print_linhas, etc...
 
-  #def board_to_string(tab) do
-  # (...)
-  #end
+  def board_to_string(tab) do
+    (...)
+  end
 
 # gera_lista/2: recebe um inteiro n, um valor v, e gera uma lista contendo n vezes o valor v
 
@@ -219,11 +238,13 @@ end
                    [false, false, false, false, false, false, false, false, false]]
 
 
-  IO.puts "Tem mina em (4, 4)? #{Minesweeper.is_mine(mines_board, 4, 4)}"
-  IO.puts "Tem mina em (5, 5)? #{Minesweeper.is_mine(mines_board, 5, 5)}"
-  IO.puts "Tem mina em (0, 0)? #{Minesweeper.is_mine(mines_board, 0, 0)}"
-  IO.puts "Tem mina em (1, 2)? #{Minesweeper.is_mine(mines_board, 1, 2)}"
+  #IO.puts "Tem mina em (4, 4)? #{Minesweeper.is_mine(mines_board, 4, 4)}"
+  #IO.puts "Tem mina em (5, 5)? #{Minesweeper.is_mine(mines_board, 5, 5)}"
+  #IO.puts "Tem mina em (0, 0)? #{Minesweeper.is_mine(mines_board, 0, 0)}"
+  #IO.puts "Tem mina em (1, 2)? #{Minesweeper.is_mine(mines_board, 1, 2)}"
 
-  IO.inspect Minesweeper.valid_moves(3, 0, 0) # Saída esperada: [{0, 1}, {1, 0}, {1, 1}]
-  IO.inspect Minesweeper.valid_moves(3, 1, 1) # Saída esperada: [{0, 0}, {0, 1}, {0, 2}, {1, 0}, {1, 2}, {2, 0}, {2, 1}, {2, 2}]
-  IO.inspect Minesweeper.valid_moves(3, 2, 2) # Saída esperada: [{1, 1}, {1, 2}, {2, 1}]
+  #IO.inspect Minesweeper.valid_moves(3, 0, 0) # Saída esperada: [{0, 1}, {1, 0}, {1, 1}]
+  #IO.inspect Minesweeper.valid_moves(3, 1, 1) # Saída esperada: [{0, 0}, {0, 1}, {0, 2}, {1, 0}, {1, 2}, {2, 0}, {2, 1}, {2, 2}]
+  #IO.inspect Minesweeper.valid_moves(3, 2, 2) # Saída esperada: [{1, 1}, {1, 2}, {2, 1}]
+
+  #IO.inspect Minesweeper.conta_minas_adj(mines_board, 4, 5)
