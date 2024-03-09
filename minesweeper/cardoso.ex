@@ -1,11 +1,11 @@
 defmodule Minesweeper do
-  def get_arr([h|_t], 0), do: h
-  def get_arr([_h|t], p), do: get_arr(t, p - 1)
+  def get_arr([h | _t], 0), do: h
+  def get_arr([_h | t], n), do: get_arr(t, n - 1)
 
-  def update_arr([_h|t], 0, v), do: [v | t]
-  def update_arr([h|t], n, v), do: [h | update_arr(t, n - 1, v)]
+  def update_arr([_h | t], 0, v), do: [v | t]
+  def update_arr([h | t], n, v), do: [h | update_arr(t, n - 1, v)]
 
-  def get_pos(tab, l, c), do: tab |> get_arr(l) |> get_arr(c)
+  def get_pos(tab, l, c), do: get_arr(get_arr(tab, l), c)
 
   def update_pos(tab, l, c, v), do: update_arr(tab, l, update_arr(get_arr(tab, l), c, v))
 
@@ -13,104 +13,124 @@ defmodule Minesweeper do
 
   def is_valid_pos(tamanho, l, c), do: l >= 0 and l < tamanho and c >= 0 and c < tamanho
 
-  def valid_moves(tam, l, c) do
+  def valid_moves(tamanho, l, c),
+    do:
+      [
+        {l - 1, c - 1},
+        {l - 1, c},
+        {l - 1, c + 1},
+        {l, c - 1},
+        {l, c + 1},
+        {l + 1, c - 1},
+        {l + 1, c},
+        {l + 1, c + 1}
+      ]
+      |> Enum.filter(fn {lt, ct} -> is_valid_pos(tamanho, lt, ct) end)
 
-    moves = [
-      {l-1, c-1}, {l-1, c}, {l-1, c+1},
-      {l,   c-1},           {l,   c+1},
-      {l+1, c-1}, {l+1, c}, {l+1, c+1}
-    ]
-
-    Enum.filter(moves, fn {nl, nc} -> is_valid_pos(tam, nl, nc) end)
+  def conta_minas_adj(tab, l, c) do
+    valid_moves(length(tab), l, c) |> Enum.count(fn {lt, ct} -> is_mine(tab, lt, ct) end)
   end
 
-  def conta_minas_adj(minas, l, c) do
-    adjPositions = valid_moves(length(minas), l, c)
-
-    # Conta quantos get_pos true existem nas posições adjacentes
-    Enum.count(adjPositions, fn {nl, nc} -> true and get_pos(minas, nl, nc) end)
-  end
-
-  # Alterar
   def abre_jogada(l, c, minas, tab) do
     if is_mine(minas, l, c) or is_integer(get_pos(tab, l, c)) do
       tab
     else
       qtd_minas = conta_minas_adj(minas, l, c)
 
-      case qtd_minas do
-        0 ->
-          # Abre a posição
-          tab = update_pos(tab, l, c, 0)
+      tab =
+        case qtd_minas do
+          0 ->
+            # Abre a posição
+            tab = update_pos(tab, l, c, 0)
 
-          # Recursivamente abre as adjacentes
-          new_tab =
+            # Recursivamente abre as adjacentes
             valid_moves(length(tab), l, c)
             |> Enum.reduce(tab, fn {lt, ct}, acc_tab -> abre_jogada(lt, ct, minas, acc_tab) end)
 
-          new_tab
+          _ ->
+            # Atualiza com a quantidade de minas adjacentes
+            update_pos(tab, l, c, qtd_minas)
+        end
 
-        _ ->
-          # Atualiza com a quantidade de minas adjacentes
-          update_pos(tab, l, c, qtd_minas)
-      end
+      tab
     end
   end
 
   def abre_posicao(tab, minas, l, c) do
-    cond do
-      get_pos(tab, l, c) == "-" ->
-        cond do
-          is_mine(minas, l, c) ->
-            update_pos(tab, l, c, "@")
-
+    case get_pos(tab, l, c) do
+      # se está fechada
+      "■" ->
+        case is_mine(minas, l, c) do
           true ->
+            update_pos(tab, l, c, "Ø")
+
+          false ->
             n_minas = conta_minas_adj(minas, l, c)
             update_pos(tab, l, c, n_minas)
         end
 
-      true ->
+      _ ->
         tab
     end
   end
 
   def abre_tabuleiro(minas, tab) do
-    Enum.reduce(0..(length(tab) - 1), tab, fn l, acc_tab ->
-      Enum.reduce(0..(length(tab) - 1), acc_tab, fn c, acc_tab2 ->
-        abre_posicao(acc_tab2, minas, l, c)
+    Enum.reduce(0..(length(tab) - 1), tab, fn l, soma ->
+      Enum.reduce(0..(length(tab) - 1), soma, fn c, soma2 ->
+        abre_posicao(soma2, minas, l, c)
       end)
     end)
   end
 
+  ########################################################################################
+
   def board_to_string(tab) do
-    tamanho = length(tab)
-    borda_cima = "\n\n   #{Enum.join(1..tamanho, "   ")}  \n  ┌#{String.duplicate("───┬", tamanho - 1)}───┐"
-    borda_baixo = "\n  └#{String.duplicate("───┴", tamanho - 1)}───┘"
-
-    borda = "  ├#{String.duplicate("───┼", tamanho - 1)}───┤"
-
-    # Define a função de ajuste de índice
-    adjusted_index = fn i ->
-      if i >= 10, do: "#{i}│", else: "#{i} │"
-    end
-
-    linhas = Enum.zip(1..tamanho, tab)
-             |> Enum.map(fn {i, linha} -> "#{adjusted_index.(i)} #{Enum.join(linha, " │ ")} │" end)
-             |> Enum.join("\n#{borda}\n")
-
-    borda_cima <> "\n" <> linhas <> borda_baixo
+    Enum.join(
+      [
+        print_borda_cima(length(tab)),
+        print_linhas(tab),
+        print_borda_baixo(length(tab))
+      ],
+      "\n"
+    )
   end
+
+  defp print_borda_cima(tamanho) do
+    "\n\n╔#{String.duplicate("═══╦", tamanho - 1)}═══╗"
+  end
+
+  defp print_borda_baixo(tamanho) do
+    "╚#{String.duplicate("═══╩", tamanho - 1)}═══╝\n\n"
+  end
+
+  defp print_borda(tamanho) do
+    "╠#{String.duplicate("═══╬", tamanho - 1)}═══╣"
+  end
+
+  defp print_linhas(tab) do
+    Enum.join(Enum.map(tab, &print_linha(&1)), "\n#{print_borda(length(tab))}\n")
+  end
+
+  defp print_linha(linha) do
+    "#{Enum.join(Enum.map(linha, &print_pos(&1)), "")}║"
+  end
+
+  defp print_pos(pos) do
+    "║ #{pos} "
+  end
+
+  ########################################################################################
 
   def gera_lista(0, _v), do: []
   def gera_lista(n, v), do: [v | gera_lista(n - 1, v)]
 
-  def gera_tabuleiro(n), do: Enum.map(gera_lista(n, "-"), &gera_lista(n, &1))
+  def gera_tabuleiro(n), do: Enum.map(gera_lista(n, "■"), &gera_lista(n, &1))
 
   def gera_mapa_de_minas(n), do: gera_lista(n, gera_lista(n, false))
 
   def conta_fechadas(tab) do
     Enum.reduce(tab, 0, fn l, soma ->
-      soma + Enum.count(l, fn pos -> pos == "-" end)
+      soma + Enum.count(l, fn pos -> pos == "■" end)
     end)
   end
 
@@ -122,6 +142,9 @@ defmodule Minesweeper do
 
   def end_game?(minas, tab), do: conta_fechadas(tab) == conta_minas(minas)
 end
+
+###################################################################
+###################################################################
 
 defmodule Motor do
   def main() do
@@ -176,15 +199,3 @@ defmodule Motor do
 end
 
 Motor.main()
-
-
-  #IO.puts "Tem mina em (4, 4)? #{Minesweeper.is_mine(mines_board, 4, 4)}"
-  #IO.puts "Tem mina em (5, 5)? #{Minesweeper.is_mine(mines_board, 5, 5)}"
-  #IO.puts "Tem mina em (0, 0)? #{Minesweeper.is_mine(mines_board, 0, 0)}"
-  #IO.puts "Tem mina em (1, 2)? #{Minesweeper.is_mine(mines_board, 1, 2)}"
-
-  #IO.inspect Minesweeper.valid_moves(3, 0, 0) # Saída esperada: [{0, 1}, {1, 0}, {1, 1}]
-  #IO.inspect Minesweeper.valid_moves(3, 1, 1) # Saída esperada: [{0, 0}, {0, 1}, {0, 2}, {1, 0}, {1, 2}, {2, 0}, {2, 1}, {2, 2}]
-  #IO.inspect Minesweeper.valid_moves(3, 2, 2) # Saída esperada: [{1, 1}, {1, 2}, {2, 1}]
-
-  #IO.inspect Minesweeper.conta_minas_adj(mines_board, 4, 5)
